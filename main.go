@@ -1,10 +1,12 @@
 package main
 
 import (
+	"chat/trace"
 	"flag"
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sync"
 )
@@ -30,10 +32,17 @@ func main() {
 	flag.Parse() // parse the flags
 
 	r := newRoom()
+	r.tracer = trace.New(os.Stdout)
+
+	// Somewhere in http.Handle(pattern string, handler Handler),
+	// the function calls handler.ServeHTTP(w, r). ServeHTTP redefined
+	// above for templateHandler struct since type Handler is
+	// an interface.
 	http.Handle("/", &templateHandler{filename: "chat.html"})
 	http.Handle("/room", r)
 
-	// get the room going
+	// Get the room going as another goroutine so the main function
+	// still running to start the web server below.
 	go r.run()
 
 	// start the web server
